@@ -1551,10 +1551,25 @@ dev.off()
 #### Survival curves: Appendix #####
 ####################################
 
-LaplaceG<-function(s,var0){(1+var0*s)^-(1/var0)}
-LaplaceIG<-function(s,var0){exp((1-sqrt(1+2*var0*s))/var0)}
-LaplaceCP<-function(s,var0){exp((-3/var0)*(1-(((3/2)/var0)/((3/2)/var0+s))^(0.5)))}
+LaplaceG<-function(s,mu,var0){(1+(var0/mu)*s)^-((mu^2)/var0)}
+LaplaceIG<-function(s,mu,var0){exp((mu^2/var0)*(1-sqrt(1+2*var0*s/mu)))}
+LaplaceCP<-function(s,mu,var0){exp((3*mu^2/var0)*((((3/2)*(mu/var0))/((3/2)*(mu/var0)+s))^(0.5)-1))}
 
+LaplaceBHN<-function(s,HR,var1,p1=0,a=0,p2=0,b=0){
+    if(p2==0){
+        p2<- (-1 + HR + p1 - a*p1)^2/(1+var1-2*HR+HR^2-p1+2*a*p1-a^2*p1)
+        b<- (var1-HR+HR^2+a*p1-a^2*p1)/(-1+HR+p1-a*p1)
+        if(p1+p2>1|p2<0|b<0){ print('Unvalid input')}
+    }
+    else{
+        p1<- (-1 + HR + p2 - b*p2)^2/(1+var1-2*HR+HR^2-p2+2*b*p2-b^2*p2)
+        a<- (var1-HR+HR^2+b*p2-b^2*p2)/(-1+HR+p2-b*p2)
+        if(p1+p2>1|p1<0|a<0){ print('Unvalid input')}
+    }
+    return(
+        p1*exp(-a*s)+(1-p1-p2)*exp(-s)+p2*exp(-b*s))
+    #)
+}
 
 #    s<-t^3/60
 LaplaceGD<-function(s,HR,var0,var1,p1=0,a=0,p2=0,b=0){
@@ -1569,7 +1584,7 @@ LaplaceGD<-function(s,HR,var0,var1,p1=0,a=0,p2=0,b=0){
         if(p1+p2>1|p1<0|a<0){ print('Unvalid input')}
     }
     return(
-        p1*dLaplaceG(a*s,var0)+(1-p1-p2)*dLaplaceG(1*s,var0)+p2*dLaplaceG(b*s,var0))
+        p1*LaplaceG(a*s,1,var0)+(1-p1-p2)*LaplaceG(1*s,1,var0)+p2*LaplaceG(b*s,1,var0))
     #)
 }
 
@@ -1585,7 +1600,7 @@ LaplaceIGD<-function(s,HR,var0,var1,p1=0,a=0,p2=0,b=0){
         if(p1+p2>1|p1<0|a<0){ print('Unvalid input')}
     }
     return(
-        p1*dLaplaceIG(a*s,var0)+(1-p1-p2)*dLaplaceIG(1*s,var0)+p2*dLaplaceIG(b*s,var0))
+        p1*LaplaceIG(a*s,1,var0)+(1-p1-p2)*LaplaceIG(1*s,1,var0)+p2*LaplaceIG(b*s,1,var0))
     #)
 }
 
@@ -1601,7 +1616,7 @@ LaplaceCPD<-function(s,HR,var0,var1,p1=0,a=0,p2=0,b=0){
         if(p1+p2>1|p1<0|a<0){ print('Unvalid input')}
     }
     return(
-        p1*dLaplaceCP(a*s,var0)+(1-p1-p2)*dLaplaceCP(1*s,var0)+p2*dLaplaceCP(b*s,var0))
+        p1*LaplaceCP(a*s,1,var0)+(1-p1-p2)*LaplaceCP(1*s,1,var0)+p2*LaplaceCP(b*s,1,var0))
     #)
 }
 
@@ -1612,25 +1627,11 @@ par(mfrow = c(1,3),
     mar = c(0,0,1,1) + 0.1)
 #Hazard ratio
 
-#Gamma#
-OH_1f<-function(t,HR0,theta0){
-    HR0*(1/theta0+t^3/60)/(1/theta0+t^3/(60/HR0))
-}
+plot(seq(0,10,0.1),sapply(seq(0,10,0.1),function(x){LaplaceG(3*x^3/60,1,1)}),type="l",ylim=c(0,1),ylab="P(Ta>t)",xlab="Time",col=clr1,axes=F)
+lines(seq(0,10,0.1),sapply(seq(0,10,0.1),function(x){LaplaceG(x^3/60,1,1)}),lty=2,col="black")
 
-plot(seq(0,10,0.1),sapply(seq(0,10,0.1),function(x){OH_1f(x,3,1)}),type="l",ylim=c(0,3),ylab="Hazard ratio",xlab="Time",col=clr1,axes=F)
-lines(seq(0,10,0.1),sapply(seq(0,10,0.1),function(x){OH_1f(x,3,2)}),type="l",ylab="Hazard ratio",xlab="Time",lty=2,col=clr1)
-#lines(seq(0,10,0.1),sapply(seq(0,10,0.1),function(x){OH_1f(x,3,5)}),type="l",ylim=c(0,3),ylab="Hazard ratio",xlab="Time",lty=3,col=clr1)
-lines(seq(0,10,0.1),sapply(seq(0,10,0.1),function(x){OH_1f(x,3,0.5)}),type="l",ylab="Hazard ratio",xlab="Time",lty=3,col=clr1)
-abline(h=3,lwd=2,col=clr1b)
+lines(seq(0,10,0.1),sapply(seq(0,10,0.1),function(x){LaplaceG((1/3)*x^3/60,1,1)}),type="l",ylab="Hazard ratio",xlab="Time",col=clr2)
 
-abline(h=1,lwd=2,col=rgb(220/255,220/255,220/255,0.2))
-
-
-lines(seq(0,10,0.1),sapply(seq(0,10,0.1),function(x){OH_1f(x,1/3,1)}),type="l",ylab="Hazard ratio",xlab="Time",col=clr2)
-lines(seq(0,10,0.1),sapply(seq(0,10,0.1),function(x){OH_1f(x,1/3,2)}),type="l",ylab="Hazard ratio",xlab="Time",lty=2,col=clr2)
-#lines(seq(0,10,0.1),sapply(seq(0,10,0.1),function(x){OH_1f(x,1/3,5)}),type="l",ylim=c(0,3),ylab="Hazard ratio",xlab="Time",lty=3,col=clr2)
-lines(seq(0,10,0.1),sapply(seq(0,10,0.1),function(x){OH_1f(x,1/3,0.5)}),type="l",ylab="Hazard ratio",xlab="Time",lty=3,col=clr2)
-abline(h=1/3,lwd=2,col=clr2b)
 
 axis(side = 1,
      labels = TRUE)
@@ -1639,29 +1640,15 @@ axis(side = 2,
      labels = TRUE)
 box(which = "plot", bty = "l")
 
-legend(6,2.75,legend=c(3,0.33),lty=c(1,1), col=c(clr1,clr2),title="CHR")
+legend(5,1,legend=c("0","1 (c=3)","1 (c=1/3)"),lty=c(2,1,1), col=c("black",clr1,clr2),title="a",cex=0.8)
 
 
 #InvGau#
 
-OH_1f<-function(t,HR,theta0){
-    HR*((1/theta0+2*t^3/60)/(1/theta0+2*t^3/(60/HR)))^(0.5)
-}
+plot(seq(0,10,0.1),sapply(seq(0,10,0.1),function(x){LaplaceIG(3*x^3/60,1,1)}),type="l",ylim=c(0,1),ylab="P(Ta>t)",xlab="Time",col=clr1,axes=F)
+lines(seq(0,10,0.1),sapply(seq(0,10,0.1),function(x){LaplaceIG(x^3/60,1,1)}),lty=2,col="black")
 
-plot(seq(0,10,0.1),sapply(seq(0,10,0.1),function(x){OH_1f(x,3,1)}),type="l",ylim=c(0,3),ylab="Hazard ratio",xlab="Time",col=clr1,axes=F)
-lines(seq(0,10,0.1),sapply(seq(0,10,0.1),function(x){OH_1f(x,3,2)}),type="l",ylim=c(0,3),ylab="Hazard ratio",xlab="Time",lty=2,col=clr1)
-#lines(seq(0,10,0.1),sapply(seq(0,10,0.1),function(x){OH_1f(x,3,5)}),type="l",ylim=c(0,3),ylab="Hazard ratio",xlab="Time",lty=3,col=clr1)
-lines(seq(0,10,0.1),sapply(seq(0,10,0.1),function(x){OH_1f(x,3,0.5)}),type="l",ylim=c(0,3),ylab="Hazard ratio",xlab="Time",lty=3,col=clr1)
-abline(h=3,lwd=2,col=clr1b)
-
-abline(h=1,lwd=2,col=rgb(220/255,220/255,220/255,0.2))
-
-
-lines(seq(0,10,0.1),sapply(seq(0,10,0.1),function(x){OH_1f(x,1/3,1)}),type="l",ylim=c(0,3),ylab="Hazard ratio",xlab="Time",col=clr2)
-lines(seq(0,10,0.1),sapply(seq(0,10,0.1),function(x){OH_1f(x,1/3,2)}),type="l",ylim=c(0,3),ylab="Hazard ratio",xlab="Time",lty=2,col=clr2)
-#lines(seq(0,10,0.1),sapply(seq(0,10,0.1),function(x){OH_1f(x,1/3,5)}),type="l",ylim=c(0,3),ylab="Hazard ratio",xlab="Time",lty=3,col=clr2)
-lines(seq(0,10,0.1),sapply(seq(0,10,0.1),function(x){OH_1f(x,1/3,0.5)}),type="l",ylim=c(0,3),ylab="Hazard ratio",xlab="Time",lty=3,col=clr2)
-abline(h=1/3,lwd=2,col=clr2b)
+lines(seq(0,10,0.1),sapply(seq(0,10,0.1),function(x){LaplaceIG((1/3)*x^3/60,1,1)}),type="l",ylab="Hazard ratio",xlab="Time",col=clr2)
 
 axis(side = 1,
      labels = TRUE)
@@ -1672,26 +1659,11 @@ box(which = "plot", bty = "l")
 
 #Cpoi#
 
+plot(seq(0,10,0.1),sapply(seq(0,10,0.1),function(x){LaplaceCP(3*x^3/60,1,1)}),type="l",ylim=c(0,1),ylab="P(Ta>t)",xlab="Time",col=clr1,axes=F)
+lines(seq(0,10,0.1),sapply(seq(0,10,0.1),function(x){LaplaceCP(x^3/60,1,1)}),lty=2,col="black")
 
-OH_1f<-function(t,HR,theta0){
-    
-    HR*((2*theta0*(t^3/60)+3)/(2*theta0*(t^3/(60/HR))+3))^(3/2)
-}
+lines(seq(0,10,0.1),sapply(seq(0,10,0.1),function(x){LaplaceCP((1/3)*x^3/60,1,1)}),type="l",ylab="Hazard ratio",xlab="Time",col=clr2)
 
-plot(seq(0,10,0.1),sapply(seq(0,10,0.1),function(x){OH_1f(x,3,1)}),type="l",ylim=c(0,3),ylab="Hazard ratio",xlab="Time",col=clr1,axes=F)
-lines(seq(0,10,0.1),sapply(seq(0,10,0.1),function(x){OH_1f(x,3,2)}),type="l",ylim=c(0,3),ylab="Hazard ratio",xlab="Time",lty=2,col=clr1)
-#lines(seq(0,10,0.1),sapply(seq(0,10,0.1),function(x){OH_1f(x,3,5)}),type="l",ylim=c(0,3),ylab="Hazard ratio",xlab="Time",lty=3,col=clr1)
-lines(seq(0,10,0.1),sapply(seq(0,10,0.1),function(x){OH_1f(x,3,0.5)}),type="l",ylim=c(0,3),ylab="Hazard ratio",xlab="Time",lty=3,col=clr1)
-abline(h=3,lwd=2,col=clr1b)
-
-abline(h=1,lwd=2,col=rgb(220/255,220/255,220/255,0.2))
-
-
-lines(seq(0,10,0.1),sapply(seq(0,10,0.1),function(x){OH_1f(x,1/3,1)}),type="l",ylim=c(0,3),ylab="Hazard ratio",xlab="Time",col=clr2)
-lines(seq(0,10,0.1),sapply(seq(0,10,0.1),function(x){OH_1f(x,1/3,2)}),type="l",ylim=c(0,3),ylab="Hazard ratio",xlab="Time",lty=2,col=clr2)
-#lines(seq(0,10,0.1),sapply(seq(0,10,0.1),function(x){OH_1f(x,1/3,5)}),type="l",ylim=c(0,3),ylab="Hazard ratio",xlab="Time",lty=3,col=clr2)
-lines(seq(0,10,0.1),sapply(seq(0,10,0.1),function(x){OH_1f(x,1/3,0.5)}),type="l",ylim=c(0,3),ylab="Hazard ratio",xlab="Time",lty=3,col=clr2)
-abline(h=1/3,lwd=2,col=clr2b)
 
 axis(side = 1,
      labels = TRUE)
@@ -1703,8 +1675,146 @@ box(which = "plot", bty = "l")
 
 
 title(xlab = "t",
-      ylab = "Marginal causal hazard ratio",
+      ylab = "P(Ta>t)",
       outer = TRUE, line = 3)
+dev.off()
+
+
+tikz("D:/Documents/PhD/Causal Hazard Ratio/Examples/TikzFigures/SurvivalCurves2.tex",width=8,height=3)
+
+par(mfrow = c(1,4),
+    oma = c(5,4,0,0) + 0.1,
+    mar = c(0,0,1,1) + 0.1)
+
+
+#BHN
+
+plot(seq(0,10,0.1),sapply(seq(0,10,0.1),function(x){LaplaceBHN(x^3/60,3,1,p1=0.05,a=0.5)}),type="l",ylim=c(0,1),ylab="P(Ta>t)",xlab="Time",col=clr3,axes=F)
+lines(seq(0,10,0.1),sapply(seq(0,10,0.1),function(x){exp(-x^3/60)}),lty=2,col="black")
+
+lines(seq(0,10,0.1),sapply(seq(0,10,0.1),function(x){LaplaceBHN(x^3/60,1/3,1,p1=0.9,a=0.1)}),type="l",ylab="Hazard ratio",xlab="Time",col=clr4)
+
+
+axis(side = 1,
+     labels = TRUE)
+
+axis(side = 2,
+     labels = TRUE)
+box(which = "plot", bty = "l")
+
+legend(5,1,legend=c("0","1 (E[U1]=3)","1 (E[U1]=1/3)"),lty=c(2,1,1), col=c("black",clr3,clr4),title="a",cex=0.8)
+
+
+
+#Gamma
+
+plot(seq(0,10,0.1),sapply(seq(0,10,0.1),function(x){LaplaceG(x^3/60,3,1)}),type="l",ylim=c(0,1),ylab="P(Ta>t)",xlab="Time",col=clr3,axes=F)
+lines(seq(0,10,0.1),sapply(seq(0,10,0.1),function(x){exp(-x^3/60)}),lty=2,col="black")
+
+lines(seq(0,10,0.1),sapply(seq(0,10,0.1),function(x){LaplaceG(x^3/60,1/3,1)}),type="l",ylab="Hazard ratio",xlab="Time",col=clr4)
+
+
+axis(side = 1,
+     labels = TRUE)
+
+axis(side = 2,
+     labels = FALSE)
+box(which = "plot", bty = "l")
+
+
+#InvGau#
+
+plot(seq(0,10,0.1),sapply(seq(0,10,0.1),function(x){LaplaceIG(x^3/60,3,1)}),type="l",ylim=c(0,1),ylab="P(Ta>t)",xlab="Time",col=clr3,axes=F)
+lines(seq(0,10,0.1),sapply(seq(0,10,0.1),function(x){exp(-x^3/60)}),lty=2,col="black")
+
+lines(seq(0,10,0.1),sapply(seq(0,10,0.1),function(x){LaplaceIG(x^3/60,1/3,1)}),type="l",ylab="Hazard ratio",xlab="Time",col=clr4)
+
+axis(side = 1,
+     labels = TRUE)
+
+axis(side = 2,
+     labels = FALSE)
+box(which = "plot", bty = "l")
+
+#Cpoi#
+
+plot(seq(0,10,0.1),sapply(seq(0,10,0.1),function(x){LaplaceCP(x^3/60,3,1)}),type="l",ylim=c(0,1),ylab="P(Ta>t)",xlab="Time",col=clr3,axes=F)
+lines(seq(0,10,0.1),sapply(seq(0,10,0.1),function(x){exp(-x^3/60)}),lty=2,col="black")
+
+lines(seq(0,10,0.1),sapply(seq(0,10,0.1),function(x){LaplaceCP(x^3/60,1/3,1)}),type="l",ylab="Hazard ratio",xlab="Time",col=clr4)
+
+
+axis(side = 1,
+     labels = TRUE)
+
+axis(side = 2,
+     labels = FALSE)
+box(which = "plot", bty = "l")
+
+
+
+title(xlab = "t",
+      ylab = "P(Ta>t)",
+      outer = TRUE, line = 3)
+dev.off()
+
+tikz("D:/Documents/PhD/Causal Hazard Ratio/Examples/TikzFigures/SurvivalCurves3.tex",width=6,height=3)
+
+par(mfrow = c(1,3),
+    oma = c(5,4,0,0) + 0.1,
+    mar = c(0,0,1,1) + 0.1)
+#Hazard ratio
+
+
+plot(seq(0,10,0.1),sapply(seq(0,10,0.1),function(x){LaplaceGD(x^3/60,3,1,1,p1=0.05,a=0.5)}),type="l",ylim=c(0,1),ylab="P(Ta>t)",xlab="Time",col=clr5,axes=F)
+lines(seq(0,10,0.1),sapply(seq(0,10,0.1),function(x){LaplaceG(x^3/60,1,1)}),lty=2,col="black")
+
+lines(seq(0,10,0.1),sapply(seq(0,10,0.1),function(x){LaplaceGD(x^3/60,1/3,1,1,p1=0.9,a=0.1)}),type="l",ylab="Hazard ratio",xlab="Time",col=clr6)
+
+
+axis(side = 1,
+     labels = TRUE)
+
+axis(side = 2,
+     labels = TRUE)
+box(which = "plot", bty = "l")
+
+legend(5,1,legend=c("0","1 (E[U1]=3)","1 (E[U0]=1/3)"),lty=c(2,1,1), col=c("black",clr5,clr6),title="a",cex=0.8)
+
+
+plot(seq(0,10,0.1),sapply(seq(0,10,0.1),function(x){LaplaceIGD(x^3/60,3,1,1,p1=0.05,a=0.5)}),type="l",ylim=c(0,1),ylab="P(Ta>t)",xlab="Time",col=clr5,axes=F)
+lines(seq(0,10,0.1),sapply(seq(0,10,0.1),function(x){LaplaceIG(x^3/60,1,1)}),lty=2,col="black")
+
+lines(seq(0,10,0.1),sapply(seq(0,10,0.1),function(x){LaplaceIGD(x^3/60,1/3,1,1,p1=0.9,a=0.1)}),type="l",ylab="Hazard ratio",xlab="Time",col=clr6)
+
+
+axis(side = 1,
+     labels = TRUE)
+
+axis(side = 2,
+     labels = FALSE)
+box(which = "plot", bty = "l")
+
+
+
+plot(seq(0,10,0.1),sapply(seq(0,10,0.1),function(x){LaplaceCPD(x^3/60,3,1,1,p1=0.05,a=0.5)}),type="l",ylim=c(0,1),ylab="P(Ta>t)",xlab="Time",col=clr5,axes=F)
+lines(seq(0,10,0.1),sapply(seq(0,10,0.1),function(x){LaplaceCP(x^3/60,1,1)}),lty=2,col="black")
+
+lines(seq(0,10,0.1),sapply(seq(0,10,0.1),function(x){LaplaceCPD(x^3/60,1/3,1,1,p1=0.9,a=0.1)}),type="l",ylab="Hazard ratio",xlab="Time",col=clr6)
+
+
+axis(side = 1,
+     labels = TRUE)
+
+axis(side = 2,
+     labels = FALSE)
+box(which = "plot", bty = "l")
+
+
+title(xlab = "t",
+      ylab = "P(Ta>t)",
+      outer = TRUE, line = 3)
+dev.off()
 
 legend(6,2.75,legend=c(0.5,1,2),lty=c(3,1,2),title="var(U0)")
 dev.off()
